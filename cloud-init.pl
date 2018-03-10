@@ -136,14 +136,14 @@ sub apply_user_data {
 }
 
 sub cloud_init {
-    my $pubkeys = get_metadata('public-keys');
+    my $pubkeys = get_metadata('meta-data/public-keys');
     chomp($pubkeys);
     install_pubkeys IMG_USER_NAME, map {
       $_ =~ /^(\d+)=/;
-      get_metadata(sprintf('public-keys/%d/openssh-key', $1));
+      get_metadata(sprintf('meta-data/public-keys/%d/openssh-key', $1));
     } split /\n/, $pubkeys;
 
-    my $hostname = get_metadata('hostname');
+    my $hostname = get_metadata('meta-data/hostname');
     action_set_hostname($hostname)
       if (defined($hostname));
 
