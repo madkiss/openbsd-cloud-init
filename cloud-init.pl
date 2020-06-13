@@ -74,6 +74,8 @@ sub install_pubkeys {
   my $username = shift;
   my ($user_uid,$user_gid) = lookup_uid_gid $username;
 
+  print STDOUT "Deploy SSH key for user $username\n";
+
   return unless (defined $user_uid && defined $user_gid);
   return unless (-d "/home/$username");
   my $ssh_dir = "/home/$username/.ssh";
@@ -177,22 +179,14 @@ sub apply_user_data {
 sub cloud_init {
     my $host = METADATA_HOST;
 
-    my $compressed = get_data($host, 'user-data');
+    my $compressed = get_metadata('user-data');
     my $data;
     gunzip \$compressed => \$data;
-
-    my $pubkeys = get_metadata('meta-data/public-keys');
-    chomp($pubkeys);
-    install_pubkeys IMG_USER_NAME, map {
-      $_ =~ /^(\d+)=/;
-      get_metadata(sprintf('meta-data/public-keys/%d/openssh-key', $1));
-    } split /\n/, $pubkeys;
 
     my $hostname = get_metadata('meta-data/hostname');
     action_set_hostname($hostname)
       if (defined($hostname));
 
-    my $data = get_metadata('user-data');
     if (defined($data)) {
         if ($data =~ /^#cloud-config/) {
             $data = CPAN::Meta::YAML->read_string($data)->[0];
@@ -205,6 +199,13 @@ sub cloud_init {
             sys_cmd("sh -c \"$filename && rm $filename\"");
         }
     }
+
+    my $pubkeys = get_metadata('meta-data/public-keys');
+    chomp($pubkeys);
+    install_pubkeys IMG_USER_NAME, map {
+      $_ =~ /^(\d+)=/;
+      get_metadata(sprintf('meta-data/public-keys/%d/openssh-key', $1));
+    } split /\n/, $pubkeys;
 }
 
 sub action_deploy {
